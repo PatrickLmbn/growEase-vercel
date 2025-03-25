@@ -1,0 +1,12 @@
+/* Add your custom styles here */
+.backdrop-blur-[2px] {
+  backdrop-filter: blur(2px);
+}
+
+.bg-white\/90 {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.bg-black\/20 {
+  background-color: rgba(0, 0, 0, 0.2);
+}

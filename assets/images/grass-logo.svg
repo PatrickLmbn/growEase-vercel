@@ -1,0 +1,15 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <!-- Grass blades -->
+    <path d="M8 28 L8 12 C8 8 12 4 16 8 C20 4 24 8 24 12 L24 28" 
+          stroke="#fff" 
+          stroke-width="2" 
+          fill="none"/>
+    <path d="M12 28 L12 16 C12 12 16 8 16 12 L16 28" 
+          stroke="#fff" 
+          stroke-width="2" 
+          fill="none"/>
+    <path d="M20 28 L20 16 C20 12 16 8 16 12 L16 28" 
+          stroke="#fff" 
+          stroke-width="2" 
+          fill="none"/>
+</svg> 
