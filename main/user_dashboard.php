@@ -40,6 +40,23 @@ try {
     <link rel="stylesheet" href="../assets/css/style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function toggleDeviceButtons() {
+        const restartBtn = document.getElementById('restartDeviceBtn');
+        const resetBtn = document.getElementById('resetDeviceBtn');
+        const toggleBtn = document.getElementById('toggleDeviceControls');
+
+        if (restartBtn.classList.contains('hidden')) {
+            restartBtn.classList.remove('hidden');
+            resetBtn.classList.remove('hidden');
+            toggleBtn.innerHTML = '<i class="bi bi-toggles"></i> Hide Device Controls';
+        } else {
+            restartBtn.classList.add('hidden');
+            resetBtn.classList.add('hidden');
+            toggleBtn.innerHTML = '<i class="bi bi-toggles"></i> Show Device Controls';
+        }
+    }
+    </script>
 </head>
 
 <body>
@@ -130,6 +147,23 @@ try {
                                 <p class="text-2xl font-bold text-green-800" id="notifications">8</p>
                             </div>
                         </div>
+                    </div>
+                    <div class="flex justify-end gap-4 mt-6">
+                        <button id="toggleDeviceControls" onclick="toggleDeviceButtons()"
+                            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors flex items-center gap-2">
+                            <i class="bi bi-toggles"></i>
+                            Show Device Controls
+                        </button>
+                        <button onclick="restartDevice()" id="restartDeviceBtn"
+                            class="hidden bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors flex items-center gap-2">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            Restart Device
+                        </button>
+                        <button onclick="resetDevice()" id="resetDeviceBtn"
+                            class="hidden bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors flex items-center gap-2">
+                            <i class="bi bi-x-circle"></i>
+                            Reset Device
+                        </button>
                     </div>
                 </div>
                 <div class="bg-white rounded-lg shadow-md p-6 border border-green-100">

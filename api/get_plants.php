@@ -8,7 +8,7 @@ try {
     $db = $database->getConnection();
 
     // Get plant info from database
-    $query = "SELECT id, name, moisture_pin, last_watered 
+    $query = "SELECT id, name, type, moisture_pin, last_watered, schedule 
               FROM tbl_plants 
               WHERE moisture_pin IS NOT NULL";
     

@@ -19,9 +19,6 @@ try {
         throw new Exception('Invalid email or password');
     }
 
-    // Hash password
-    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
     // Create database connection
     $database = new Database();
     $db = $database->getConnection();
@@ -33,23 +30,30 @@ try {
     $checkStmt->execute();
 
     if ($checkStmt->rowCount() > 0) {
-        // Update existing user
-        $query = "UPDATE tbl_users SET password = :password WHERE email = :email";
-    } else {
-        // Insert new user
-        $query = "INSERT INTO tbl_users (email, password) VALUES (:email, :password)";
+        // User already exists, return success without updating
+        $userId = $checkStmt->fetch(PDO::FETCH_ASSOC)['id'];
+        echo json_encode([
+            'success' => true,
+            'message' => 'User already registered',
+            'data' => [
+                'userId' => $userId,
+                'email' => $email,
+                'savedAt' => date('Y-m-d H:i:s')
+            ]
+        ]);
+        exit;
     }
 
+    // Only proceed with insertion for new users
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    $query = "INSERT INTO tbl_users (email, password) VALUES (:email, :password)";
+    
     $stmt = $db->prepare($query);
     $stmt->bindParam(':email', $email);
     $stmt->bindParam(':password', $hashedPassword);
     
     if ($stmt->execute()) {
-        // Get the user ID
-        $userId = $checkStmt->rowCount() > 0 ? 
-            $checkStmt->fetch(PDO::FETCH_ASSOC)['id'] : 
-            $db->lastInsertId();
-        
+        $userId = $db->lastInsertId();
         echo json_encode([
             'success' => true,
             'message' => 'Credentials saved successfully',
@@ -69,4 +73,4 @@ try {
         'success' => false,
         'message' => $e->getMessage()
     ]);
-} 
+}

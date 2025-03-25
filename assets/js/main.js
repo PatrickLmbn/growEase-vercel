@@ -2,6 +2,7 @@
 let channel;
 const usedPins = new Set(); // Track used moisture sensor pins
 const plantDatabase = new Map(); // Pin -> plant data mapping
+let credentialsSaved = false; // Track if credentials have been saved
 
 // Request available pins when the page loads
 function requestAvailablePins() {
@@ -244,14 +245,14 @@ async function sendPlantsToESP32() {
 
     // 1. Fetch all plants from database
     const response = await fetch("../api/get_plants.php");
-    const result = await response.json();
+    const data = await response.json();
 
-    if (!result.success) {
+    if (!data.success) {
       throw new Error(result.message || "Failed to fetch plants");
     }
 
     // 2. For each plant in database, send to ESP32
-    result.plants.forEach((plant) => {
+    data.plants.forEach((plant) => {
       // Store each plant in our map using pin as key
       plantDatabase.set(plant.moisture_pin.toString(), plant);
 
@@ -282,7 +283,7 @@ async function sendPlantsToESP32() {
 }
 
 // Function to update plant card with checkbox state preservation
-function updatePlantCard(pin, moisturePercentage, name, type) {
+function updatePlantCard(pin, moisturePercentage, name, type, schedule) {
   const container = document.getElementById("plantCardsContainer");
 
   // Save checkbox state before updating
@@ -305,6 +306,29 @@ function updatePlantCard(pin, moisturePercentage, name, type) {
     barColor = "bg-red-500";
   }
 
+  // Format schedule display
+  let scheduleDisplay = "";
+  if (schedule) {
+    switch (schedule.toLowerCase()) {
+      case "morning":
+        scheduleDisplay = "6:00 AM";
+        break;
+      case "evening":
+        scheduleDisplay = "6:00 PM";
+        break;
+      case "twice":
+        scheduleDisplay = "6:00 AM & 6:00 PM";
+        break;
+      case "none":
+        scheduleDisplay = "No Schedule";
+        break;
+      default:
+        scheduleDisplay = "No Schedule";
+    }
+  } else {
+    scheduleDisplay = "No Schedule";
+  }
+
   const plantCardHTML = `
     <div id="plantCard${pin}" class="bg-white border border-green-100 p-4 rounded-lg shadow-md">
       <div class="flex justify-between items-start mb-2">
@@ -318,14 +342,17 @@ function updatePlantCard(pin, moisturePercentage, name, type) {
             <h3 class="text-gray-800 text-lg font-semibold">${
               name || `Plant ${pin}`
             }</h3>
-            ${type ? `<p class="text-gray-600 text-sm">Type: ${type}</p>` : ""}
+            ${
+              type && type !== "Unspecified"
+                ? `<p class="text-gray-600 text-sm">Type: ${type}</p>`
+                : ""
+            }
+            <p class="text-gray-600 text-sm">Watering: ${scheduleDisplay}</p>
           </div>
         </div>
         <span id="status${pin}" class="rounded-full text-sm ${statusClass} px-3 py-1">
           ${statusText}
-          
         </span>
-        
       </div>
       
       <div class="flex gap-4 items-center mb-2">
@@ -354,7 +381,6 @@ function updatePlantCard(pin, moisturePercentage, name, type) {
             <i class="bi bi-trash-fill"></i>
         </button>
       </div>
-      
     </div>
   `;
 
@@ -391,7 +417,8 @@ async function loadPlantsFromDatabase() {
           plant.moisture_pin,
           plant.moisture_level || 0, // Use existing moisture level from DB if available
           plant.name,
-          plant.type || ""
+          plant.type || "",
+          plant.schedule || ""
         );
 
         // Track used pins
@@ -638,7 +665,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 pin,
                 moisturePercentage, // Real-time data from ESP32
                 plant.name, // Metadata from database
-                plant.type || "" // Metadata from database
+                plant.type || "", // Metadata from database
+                plant.schedule || ""
               );
             }
           });
@@ -651,31 +679,39 @@ document.addEventListener("DOMContentLoaded", function () {
           break;
 
         case "user_credentials":
-          // Handle user credentials from ESP32
-          console.log("📥 Received user credentials from ESP32:", message.data);
+          // Handle user credentials from ESP32 - only save once
+          if (!credentialsSaved) {
+            console.log(
+              "📥 Received user credentials from ESP32:",
+              message.data
+            );
 
-          // Send credentials to database immediately
-          fetch("../api/save_credentials.php", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(message.data),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.success) {
-                console.log("✅ Credentials saved to database:", {
-                  email: message.data.email,
-                  savedAt: new Date().toISOString(),
-                });
-              } else {
-                console.error("❌ Failed to save credentials:", data.message);
-              }
+            // Send credentials to database
+            fetch("../api/save_credentials.php", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(message.data),
             })
-            .catch((error) => {
-              console.error("❌ Error saving credentials:", error);
-            });
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  console.log("✅ Credentials saved to database:", {
+                    email: message.data.email,
+                    savedAt: new Date().toISOString(),
+                  });
+                  credentialsSaved = true; // Mark as saved
+                } else {
+                  console.error("❌ Failed to save credentials:", data.message);
+                }
+              })
+              .catch((error) => {
+                console.error("❌ Error saving credentials:", error);
+              });
+          } else {
+            console.log("Credentials already saved, skipping...");
+          }
           break;
 
         default:
@@ -749,7 +785,8 @@ document.addEventListener("DOMContentLoaded", function () {
               data.plant.moisture_pin,
               data.plant.moisture_level || 0,
               data.plant.name,
-              data.plant.type
+              data.plant.type,
+              data.plant.schedule || ""
             );
 
             // Close modal and show success
@@ -1147,7 +1184,8 @@ function saveWateringSchedule() {
                   pin,
                   plant.moisture_level || 0,
                   plant.name,
-                  plant.type || ""
+                  plant.type || "",
+                  plant.schedule || ""
                 );
                 // Trigger sending schedule to ESP32
                 sendScheduleToESP32(pin);
